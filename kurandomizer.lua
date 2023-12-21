@@ -5,22 +5,44 @@
 FILENAME_ADD = 0x203BDAE -- Start of GUEST file name
 LEVEL_ACCESS_ADD = 0x203BF40 -- Start of level accessibility (goes until + 0x25)
 
--- Unlock all makeup (fun!)
--- for i=0, 4 do
--- 	memory.writebyte(0x203bdc0+i,0xff)
--- end
-
--- Set random makeup (more fun!)
-memory.writebyte(0x203bdc4, math.random(0x0,0xe)) -- Stick shape
-memory.writebyte(0x203bdc5, math.random(0x0,0x6)) -- Paint
--- memory.write_u16_le(0x203bdc6, 0) -- No birbs >:(
--- memory.write_u16_le(0x203bdc6, math.random(0,1024)) -- Birbs
-
+-----------------------------------
+------- CHARACTER TABLE -----------
+-----------------------------------
 CHARACTERTABLE = require("charactertable")
 
 -----------------------------------
 ------- SAVE FILE EDITING ---------
 -----------------------------------
+
+-- 0203BFA2 -> File 1 name
+-- 0203C196 -> File 2 name
+-- 0203C38A -> File 3 name
+-- 0203C57E -> File 4 name
+
+-- Show some text using the unused filenames
+function showTitleText()
+	local topTitle = "Kuru Kuru"
+	local middleTitle = "Kururin"
+	local bottomTitle = "Randomizer"
+
+	memory.writebyte(0x203BFA2, 0x20)
+	for i=0, #topTitle do
+		local s = topTitle:sub(i+1,i+1)
+		memory.writebyte(0x0203BFA2+i, CHARACTERTABLE[s])
+	end
+
+	for i=0, #middleTitle do
+		local s = middleTitle:sub(i+1,i+1)
+		memory.writebyte(0x0203C196+i, CHARACTERTABLE[s])
+	end
+
+	for i=0, #bottomTitle do
+		local s = bottomTitle:sub(i+1,i+1)
+		memory.writebyte(0x0203C38A+i, CHARACTERTABLE[s])
+	end
+
+	memory.writebyte(0x0203C57E, 0x20)
+end
 
 -- File name --
 
@@ -38,6 +60,8 @@ function setFileName(filename)
 				end
 			end
 		end
+	else
+		print("Filename too long!")
 	end
 end
 
@@ -50,6 +74,17 @@ function setLevelsInaccessible()
 	for i=1, 37 do
 		memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
 	end
+end
+
+function setRandomMakeup()
+	-- Unlock all makeup (fun!)
+	-- for i=0, 4 do
+	-- 	memory.writebyte(0x203bdc0+i,0xff)
+	-- end
+
+	-- Set random makeup (Does not set birds, at BDC6 and BDC7)
+	memory.writebyte(0x203bdc4, math.random(0x0,0xe)) -- Stick shape
+	memory.writebyte(0x203bdc5, math.random(0x0,0x6)) -- Paint
 end
 
 -----------------------------------
@@ -196,11 +231,16 @@ function main()
 	end
 end
 
--- Set the file name
-setFileName("Aidan")
+-----------------------------------
+------- SCRIPT LOAD ---------------
+-----------------------------------
 
--- Set all levels to inaccessible, except the first training level
-setLevelsInaccessible()
+-- Everything before the main loop runs when the script is loaded
+-- Would be smart to make certain things load upon starting a fresh file, restarting the gba emulator, etc.
 
--- Run the main loop
-main()
+showTitleText() -- Use unused filenames to show text
+setFileName("MARIO") -- Set the file name (TODO: Give the user a chance to set this lol)
+setLevelsInaccessible() -- Set all levels to inaccessible, except the first training level
+setRandomMakeup() -- Sets random makeup
+
+main() -- Run the main loop
