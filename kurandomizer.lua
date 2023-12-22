@@ -8,6 +8,7 @@ LEVEL_ACCESS_ADD = 0x203BF40 -- Start of level accessibility (goes until + 0x25)
 -----------------------------------
 ------- CHARACTER TABLE -----------
 -----------------------------------
+
 CHARACTERTABLE = require("charactertable")
 
 -----------------------------------
@@ -20,6 +21,7 @@ CHARACTERTABLE = require("charactertable")
 -- 0203C57E -> File 4 name
 
 -- Show some text using the unused filenames
+-- TODO: Change "Delete saved data" to something
 function showTitleText()
 	local topTitle = "Kuru Kuru"
 	local middleTitle = "Kururin"
@@ -172,6 +174,13 @@ function main()
 	while true do
 		-- Code here will run once when the script is loaded, then after each emulated frame.
 
+		-- Upon Reset
+		if joypad.getimmediate()["Power"] == true then
+			print("Reset!")
+			-- Could have a function here that does stuff like setup initial save stuff, etc!
+		end
+
+
 		-- Game State
 		gameStateA = memory.readbyte(0x3000dca)
 		gameStateB = memory.readbyte(0x3000dcb)
@@ -238,9 +247,18 @@ end
 -- Everything before the main loop runs when the script is loaded
 -- Would be smart to make certain things load upon starting a fresh file, restarting the gba emulator, etc.
 
+joypad.set({Power = 1}) -- Reset the console
+for i=0, 5 do
+	emu.frameadvance();
+end
+
 showTitleText() -- Use unused filenames to show text
 setFileName("MARIO") -- Set the file name (TODO: Give the user a chance to set this lol)
 setLevelsInaccessible() -- Set all levels to inaccessible, except the first training level
 setRandomMakeup() -- Sets random makeup
+
+-----------------------------------
+------- MAIN FUNCTION -------------
+-----------------------------------
 
 main() -- Run the main loop
