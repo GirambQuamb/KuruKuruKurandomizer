@@ -1,4 +1,9 @@
 -----------------------------------
+------- CONSTANTS -----------------
+-----------------------------------
+VERSIONNUMBER = "Version 0.1"
+
+-----------------------------------
 ------- ADDRESSES -----------------
 -----------------------------------
 
@@ -20,8 +25,9 @@ CHARACTERTABLE = require("charactertable")
 -- 0203C38A -> File 3 name
 -- 0203C57E -> File 4 name
 
--- Show some text using the unused filenames
--- TODO: Change "Delete saved data" to something
+-- 0801E8C0 -> "Delete Saved Data" text overwriting
+
+-- Show some text using the file select screen
 function showTitleText()
 	local topTitle = "Kuru Kuru"
 	local middleTitle = "Kururin"
@@ -44,6 +50,11 @@ function showTitleText()
 	end
 
 	memory.writebyte(0x0203C57E, 0x20)
+
+	for i=0, #VERSIONNUMBER do
+		local s = VERSIONNUMBER:sub(i+1,i+1)
+		memory.writebyte(0x0801E8C0+i, CHARACTERTABLE[s])
+	end
 end
 
 -- File name --
@@ -248,6 +259,20 @@ end
 
 -- Everything before the main loop runs when the script is loaded
 -- Would be smart to make certain things load upon starting a fresh file, restarting the gba emulator, etc.
+
+-- This code clears all save data... might be useful if corruption is an issue
+-- For now it's commented
+
+-- joypad.set({Power = 1}) -- Reset the console
+-- for i=0, 5 do
+-- 	emu.frameadvance();
+-- 	joypad.set({A=1, B=1, Select=1, Start=1})
+-- end
+-- emu.frameadvance();
+-- joypad.set({Up=1})
+-- emu.frameadvance();
+-- joypad.set({A=1})
+-- emu.frameadvance();
 
 joypad.set({Power = 1}) -- Reset the console
 for i=0, 5 do
