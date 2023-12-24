@@ -96,17 +96,8 @@ end
 -- Sets boundary for player moving right on the map
 -- IE: The highest accessible level
 
-function setHighestAccessibleLevel()
-	highestAccessibleLevel = memory.readbyte(0x3007e8e)
-	-- HIGHEST COMPLETABLE LEVEL
-	-- If levels have a completion of "1" they are inaccessible
-	-- Highest accessible level is the highest level index with no "1"
-	for i=0, 37 do
-		if memory.readbyte(LEVEL_ACCESS_ADD+i) > 1 then
-			highestAccessibleLevel = i
-		end
-	end
-	memory.writebyte(0x3007e8e,highestAccessibleLevel)
+function setHighestAccessibleLevel(highestLv)
+	memory.writebyte(0x3007e8e,highestLv)
 end
 
 
@@ -117,9 +108,11 @@ end
 -- List of levels to unlock
 
 lockedLevels = {}
-for i=1, 37 do 			-- Just fills a list with 1 to 37. Change 37 to 34 if you don't want the secret levels included                    
-	lockedLevels[i] = i	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
+for i=1, 5 do 			-- Just fills a list with 1 to 37. Change 37 to 34 if you don't want the secret levels included                    
+	lockedLevels[i] = i+1	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
 end						-- Might make things more balanced...
+
+print(lockedLevels)
 
 -- Levels unlocked when the script starts
 -- You will want to redo this to use an external file... probably json. Love me some json...
@@ -131,23 +124,14 @@ unlockedLevels = {0}
 function unlockLevel()
 	if #lockedLevels > 0 then
 		local randomIndex = math.random(1,#lockedLevels) -- Choose random index from list of locked levels
-		local unlockedLevel = table.remove(lockedLevels,randomIndex) -- Remove that random level
-
-		table.insert(unlockedLevels, unlockedLevel) -- Insert it into the unlocked levels list
+		local unlockedLevel = table.remove(lockedLevels,randomIndex)
+		
+		unlockedLevels[unlockedLevel] = 0 -- Insert it into the unlocked levels list
 		table.sort(unlockedLevels) -- Sort the table too so the map movement isn't weird
 
-		-- set the map index to the level you were just on
-		for i=1, #unlockedLevels do
-			if mapLevel == unlockedLevels[i] then
-				mapIndex = i
-				break
-			end
-		end
-		-- Make the level accessible in-game
-		memory.writebyte(LEVEL_ACCESS_ADD+unlockedLevel,2) 
+		memory.writebyte(LEVEL_ACCESS_ADD+unlockedLevel-1,2) 
 	else
-		print("You win!")
-		gui.text(0,0,"You Win!")
+		print("You win!") -- Will have to do something more fun...
 	end
 end
 
@@ -162,7 +146,6 @@ end
 
 
 mapIndex = 1
-mapLevel = 0
 world = 0
 level = 0
 
@@ -185,7 +168,7 @@ function main()
 		gameStateA = memory.readbyte(0x3000dca)
 		gameStateB = memory.readbyte(0x3000dcb)
 
-		setHighestAccessibleLevel()
+		setHighestAccessibleLevel(37)
 
 		-- SAVE SELECT STATE
 		if gameStateA == 2 and gameStateB == 1 then
@@ -199,20 +182,26 @@ function main()
 		end
 
 		-- MAP STATE (From level)
-		-- If the player is one the map
+		-- If the player is one the map (Also if the player is on the results screen)
 		if gameStateA == 3 and (gameStateB == 2 or gameStateB == 4) then
-			-- Map
+			-- Test
+			if memory.read_u32_le(0x3007EE0) == 0x80083B9 then
+				memory.writebyte(0x3007EE1, 0x82)
+			end
+			
+
+			-- Addresses related to world/level
 			world = memory.readbyte(0x3004420)
 			level = memory.readbyte(0x3004421)
 
-			-- Set level index based on smarter shit
+			-- Setting our levelIndex based on that
 			if world == 0 then
 				levelIndex = level
 			else
 				levelIndex = 2 + world*3 + level
 			end
 			
-			-- Have you just completed this level?
+			-- Have you just completed this level? (It will only ever be 0x3 immediately upon clearing it)
 			if memory.readbyte(LEVEL_ACCESS_ADD+levelIndex) == 0x3 then
 				memory.writebyte(LEVEL_ACCESS_ADD+levelIndex,4)
 				unlockLevel()
@@ -227,13 +216,26 @@ function main()
 
 			if (pressedLeft or holdingLeft) and mapIndex > 1 then
 				mapIndex = mapIndex -1
-				mapLevel = unlockedLevels[mapIndex]
-			elseif (pressedRight or holdingRight) and mapIndex < #unlockedLevels then
+			elseif (pressedRight or holdingRight) and mapIndex < 38 then
 				mapIndex = mapIndex +1
-				mapLevel = unlockedLevels[mapIndex]
 			end
-			-- gui.text(0,0,"Map index: ".. mapIndex .. "  Map Level: " .. unlockedLevels[mapIndex])
-			memory.writebyte(0x3007e90, mapLevel)
+
+			-- Can you access the level you're standing on?
+			boolLevelAccessible = unlockedLevels[mapIndex] ~= nil
+
+			gui.text(0,0,"Map index: ".. mapIndex .. "  Accessible? " .. tostring(boolLevelAccessible))
+			
+			-- If not, you can't enter
+			if boolLevelAccessible == false then
+				joypad.set({A = 0})
+			end
+
+			memory.writebyte(0x3007e90, mapIndex-1)
+
+			-- Debugging
+			if joypad.getimmediate()["L"] == true then
+				print(unlockedLevels)
+			end
 		end
 
 		emu.frameadvance();
