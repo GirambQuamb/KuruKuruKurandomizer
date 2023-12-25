@@ -1,6 +1,7 @@
 -----------------------------------
 ------- CONSTANTS -----------------
 -----------------------------------
+
 VERSIONNUMBER = "Version 0.1"
 
 -----------------------------------
@@ -15,6 +16,26 @@ LEVEL_ACCESS_ADD = 0x203BF40 -- Start of level accessibility (goes until + 0x25)
 -----------------------------------
 
 CHARACTERTABLE = require("charactertable")
+
+-----------------------------------
+------- LEVEL VARIABLES -----------
+-----------------------------------
+
+-- List of levels to unlock
+lockedLevels = {}
+for i=0, 37 do 			-- Just fills a list with 0 to 37. Change 37 to 34 if you don't want the secret levels included                    
+	lockedLevels[i] = i+1	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
+end						-- Might make things more balanced...
+
+-- Levels unlocked when the script starts... literally none lol
+-- You will want to redo this to use an external file... probably json. Love me some json...
+unlockedLevels = {}
+
+-- What level you're on on the map/in game
+mapIndex = 1
+world = 0
+level = 0
+
 
 -----------------------------------
 ------- SAVE FILE EDITING ---------
@@ -82,10 +103,14 @@ end
 -- 1 = Inaccessible, 2 = Accessible, 4 = Completed --
 -- Right now it just sets level 0 as the only accessible level --
 
-function setLevelsInaccessible()
-	memory.writebyte(LEVEL_ACCESS_ADD,2)
-	for i=1, 37 do
-		memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
+function initLevelAccess(startingLevel)
+	for i=0, 37 do
+		if i == startingLevel then
+			memory.writebyte(LEVEL_ACCESS_ADD+i, 2)
+			unlockedLevels[i+1] = true
+		else
+			memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
+		end
 	end
 end
 
@@ -113,22 +138,8 @@ end
 
 
 -----------------------------------
-------- RANDOMIZER LOGIC ----------
+------- LEVEL RELATED -------------
 -----------------------------------
-
--- List of levels to unlock
-
-lockedLevels = {}
-for i=1, 5 do 			-- Just fills a list with 1 to 37. Change 37 to 34 if you don't want the secret levels included                    
-	lockedLevels[i] = i+1	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
-end						-- Might make things more balanced...
-
-print(lockedLevels)
-
--- Levels unlocked when the script starts
--- You will want to redo this to use an external file... probably json. Love me some json...
-
-unlockedLevels = {0}
 
 -- Unlocks a level
 
@@ -136,9 +147,8 @@ function unlockLevel()
 	if #lockedLevels > 0 then
 		local randomIndex = math.random(1,#lockedLevels) -- Choose random index from list of locked levels
 		local unlockedLevel = table.remove(lockedLevels,randomIndex)
-		
-		unlockedLevels[unlockedLevel] = 0 -- Insert it into the unlocked levels list
-		table.sort(unlockedLevels) -- Sort the table too so the map movement isn't weird
+
+		unlockedLevels[unlockedLevel] = true -- Insert it into the unlocked levels list
 
 		memory.writebyte(LEVEL_ACCESS_ADD+unlockedLevel-1,2) 
 	else
@@ -146,19 +156,18 @@ function unlockLevel()
 	end
 end
 
-function getLevelIndex()
-	if world == 0 then
-		return level
-	elseif world > 0 then
-		return 4 + world*3 + level
-	end
+-----------------------------------
+----- INITILIZATION FUNCTIONS -----
+-----------------------------------
+
+function firstTimeInit()
+	showTitleText() -- Use unused filenames to show text
+	setFileName("MARIO") -- Set the file name (TODO: Give the user a chance to set this lol)
+	initLevelAccess(0) -- Set all levels to inaccessible, except the input level...
+	setRandomMakeup() -- Sets random makeup
+
+	firstLaunch = false
 end
-
-
-
-mapIndex = 1
-world = 0
-level = 0
 
 -----------------------------------
 ------- MAIN LOOP -----------------
@@ -179,7 +188,9 @@ function main()
 		gameStateA = memory.readbyte(0x3000dca)
 		gameStateB = memory.readbyte(0x3000dcb)
 
-		setHighestAccessibleLevel(37)
+		if gameStateA == 1 and gameStateB == 4 and firstLaunch then
+			firstTimeInit()
+		end
 
 		-- SAVE SELECT STATE
 		if gameStateA == 2 and gameStateB == 1 then
@@ -195,7 +206,10 @@ function main()
 		-- MAP STATE (From level)
 		-- If the player is one the map (Also if the player is on the results screen)
 		if gameStateA == 3 and (gameStateB == 2 or gameStateB == 4) then
-			-- Test
+			-- Make sure the player can access all levels (Should be 34 when bonus levels are hidden)
+			setHighestAccessibleLevel(37)
+
+			-- Skips post=level cutscenes
 			if memory.read_u32_le(0x3007EE0) == 0x80083B9 then
 				memory.writebyte(0x3007EE1, 0x82)
 			end
@@ -233,8 +247,6 @@ function main()
 
 			-- Can you access the level you're standing on?
 			boolLevelAccessible = unlockedLevels[mapIndex] ~= nil
-
-			gui.text(0,0,"Map index: ".. mapIndex .. "  Accessible? " .. tostring(boolLevelAccessible))
 			
 			-- If not, you can't enter
 			if boolLevelAccessible == false then
@@ -242,11 +254,11 @@ function main()
 			end
 
 			memory.writebyte(0x3007e90, mapIndex-1)
+		end
 
-			-- Debugging
-			if joypad.getimmediate()["L"] == true then
-				print(unlockedLevels)
-			end
+		-- Debugging
+		if joypad.getimmediate()["L"] == true then
+			gui.text(0,0,"Map index: ".. mapIndex .. "  Accessible? " .. tostring(boolLevelAccessible))
 		end
 
 		emu.frameadvance();
@@ -279,10 +291,8 @@ for i=0, 5 do
 	emu.frameadvance();
 end
 
-showTitleText() -- Use unused filenames to show text
-setFileName("MARIO") -- Set the file name (TODO: Give the user a chance to set this lol)
-setLevelsInaccessible() -- Set all levels to inaccessible, except the first training level
-setRandomMakeup() -- Sets random makeup
+-- Is this the first time you're launching?
+firstLaunch = true -- Just setting to true for now, this will be based on an external file later
 
 -----------------------------------
 ------- MAIN FUNCTION -------------
