@@ -20,8 +20,6 @@ SETTINGS = require "settings" -- Randomizer settings
 json = require "json" -- json functions
 initialize = require "initialize" -- Functions to initialize a new run
 
--- initialize.init() -- This should only be called when we don't have a json to load from
-
 -----------------------------------
 ------- LEVEL VARIABLES -----------
 -----------------------------------
@@ -29,19 +27,16 @@ initialize = require "initialize" -- Functions to initialize a new run
 -- This should all be trash soon
 
 -- List of levels to unlock
-lockedLevels = {}
-for i=0, 37 do 			-- Just fills a list with 0 to 37. Change 37 to 34 if you don't want the secret levels included                    
-	lockedLevels[i] = i+1	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
-end						-- Might make things more balanced...
+-- lockedLevels = {}
+-- for i=0, 37 do 			-- Just fills a list with 0 to 37. Change 37 to 34 if you don't want the secret levels included                    
+-- 	lockedLevels[i] = i+1	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
+-- end						-- Might make things more balanced...
 
--- Levels unlocked when the script starts... literally none lol
--- You will want to redo this to use an external file... probably json. Love me some json...
-unlockedLevels = {}
+-- -- Levels unlocked when the script starts... literally none lol
+-- -- You will want to redo this to use an external file... probably json. Love me some json...
+-- unlockedLevels = {}
 
--- What level you're on on the map/in game
-mapIndex = 1
-world = 0
-level = 0
+
 
 
 -----------------------------------
@@ -106,30 +101,31 @@ function setFileName(filename)
 	end
 end
 
--- Level Accessibility --
--- 1 = Inaccessible, 2 = Accessible, 4 = Completed --
--- Right now it just sets level 0 as the only accessible level --
-
-function initLevelAccess(startingLevel)
+-- Level Accessibility
+-- 1 = Inaccessible, 2 = Accessible, 4 = Completed
+-- Sets all levels to inaccessible
+function initLevelAccess()
 	for i=0, 37 do
-		if i == startingLevel then
-			memory.writebyte(LEVEL_ACCESS_ADD+i, 2)
-			unlockedLevels[i+1] = true
-		else
-			memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
-		end
+		memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
 	end
 end
 
 function setRandomMakeup()
-	-- Unlock all makeup (fun!)
-	-- for i=0, 4 do
-	-- 	memory.writebyte(0x203bdc0+i,0xff)
-	-- end
+	local stick = math.random(0x0,0xe)
+	local paint = math.random(0x0,0x6)
 
 	-- Set random makeup (Does not set birds, at BDC6 and BDC7)
-	memory.writebyte(0x203bdc4, math.random(0x0,0xe)) -- Stick shape
-	memory.writebyte(0x203bdc5, math.random(0x0,0x6)) -- Paint
+	memory.writebyte(0x203bdc4, stick) -- Stick shape
+	memory.writebyte(0x203bdc5, paint) -- Paint
+
+	file = io.open("makeup.json", "w")
+    file:write(json.encode({stick, paint}))
+    file:close()
+end
+
+function setMakeup(stick, paint)
+	memory.writebyte(0x203bdc4, stick) -- Stick shape
+	memory.writebyte(0x203bdc5, paint) -- Paint
 end
 
 -----------------------------------
@@ -139,8 +135,12 @@ end
 -- Sets boundary for player moving right on the map
 -- IE: The highest accessible level
 
-function setHighestAccessibleLevel(highestLv)
-	memory.writebyte(0x3007e8e,highestLv)
+function setHighestAccessibleLevel()
+	if INCLUDE_BONUS_LEVELS then
+		memory.writebyte(0x3007e8e,37)
+	else
+		memory.writebyte(0x3007e8e,34)
+	end
 end
 
 
@@ -148,35 +148,130 @@ end
 ------- LEVEL RELATED -------------
 -----------------------------------
 
--- Unlocks a level
+-- Unlocks a given level
+function unlockLevel(level)
+	randomizedLevels[level]["accessible"] = true
+	memory.writebyte(LEVEL_ACCESS_ADD+level-1,2)
+	
+	local randomizedJSON = io.open("random.json","w")
+	randomizedJSON:write(json.encode(randomizedLevels))
+    randomizedJSON:close()
+end
 
--- TODO: Refactoring to match new randomizedLevels variable
---		 Writing data to json
+-- Randomly chooses an appropriate level to unlock
+function chooseUnlockedLevel()
+	-- Number of levels in the randomized list to choose from
+	local numPossibleLevels = 0
 
-function unlockLevel()
+	-- Lowest/highest level the randomizer is willing to choose from
+	local lowestPossibleLevel = 1
+	local highestPossibleLevel = 38
+
+	-- List of locked level indexes
+	local lockedLevels = {}
+
+	-- Base length of list on settings
+	if tonumber(LEVEL_ORDER) ~= nil then
+		numPossibleLevels = tonumber(LEVEL_ORDER)
+	elseif LEVEL_ORDER == "unshuffled" then
+		numPossibleLevels = 1
+	elseif LEVEL_ORDER == "random" then
+		numPossibleLevels = #randomizedLevels
+	elseif LEVEL_ORDER == "close" then
+		numPossibleLevels = 6
+	else -- or throw a pretend error
+		print("Error with \"LEVEL_ORDER\" setting.\nCheck settings.lua and enter a valid option!")
+		return
+	end
+
+	-- Base valid level choices based on settings
+	if not INCLUDE_TRAINING_LEVELS then lowestPossibleLevel = 6 end
+	if not INCLUDE_BONUS_LEVELS then highestPossibleLevel = 35 end
+
+	-- Iterate through the list of randomized levels
+	for key, value in pairs(randomizedLevels) do
+		-- Only check valid levels
+		if value["index"] >= lowestPossibleLevel and value["index"] <= highestPossibleLevel then
+			-- Add it to our lockedLevels table if it's locked
+			if value["accessible"] == false then
+				table.insert(lockedLevels, key) -- This is the index in randomizedLevels that we will use to unlock
+			end
+		end
+		-- Break out of the loop if we've hit our max length
+		if #lockedLevels == numPossibleLevels then break end
+	end
+
+	-- Only unlock a level if there's a level to unlock
 	if #lockedLevels > 0 then
-		local randomIndex = math.random(1,#lockedLevels) -- Choose random index from list of locked levels
-		local unlockedLevel = table.remove(lockedLevels,randomIndex)
-
-		unlockedLevels[unlockedLevel] = true -- Insert it into the unlocked levels list
-
-		memory.writebyte(LEVEL_ACCESS_ADD+unlockedLevel-1,2) 
-	else
-		print("You win!") -- Will have to do something more fun...
+		r = math.random(#lockedLevels)
+		unlockLevel(lockedLevels[r])
 	end
 end
 
 -----------------------------------
------ INITILIZATION FUNCTIONS -----
+---- INITILIZATION FUNCTIONS ------
 -----------------------------------
 
-function firstTimeInit()
-	showTitleText() -- Use unused filenames to show text
-	setFileName("MARIO") -- Set the file name (TODO: Give the user a chance to set this lol)
-	initLevelAccess(0) -- Set all levels to inaccessible, except the input level...
-	setRandomMakeup() -- Sets random makeup
+-- Delete all saved data
+function deleteSavedData()
+	joypad.set({Power = 1})
+	for i=0, 5 do
+		emu.frameadvance();
+		joypad.set({A=1, B=1, Select=1, Start=1})
+	end
+	emu.frameadvance();
+	joypad.set({Up=1})
+	for i=0, 6 do
+		emu.frameadvance();
+	end
+	joypad.set({A=1})
+	for i=0, 60 do
+		emu.frameadvance();
+	end
+end
 
-	firstLaunch = false
+-- Setup level access, json file, etc.
+function setupFile()
+	showTitleText() -- Use unused filenames to show text
+	setFileName(FILE_NAME) -- Set the file name
+
+	-- Set all levels to inaccessible in-game
+	initLevelAccess() -- Set all levels to inaccessible, except the input level...
+
+	-- Hide bonus levels if they are excluded
+	if not INCLUDE_BONUS_LEVELS then memory.writebyte(0x800D218, 0x9) end
+
+	-- If there is a makeup.json file, load that makeup
+	local makeupFile = io.open("makeup.json","r")
+	if makeupFile ~= nil then
+		local m = json.decode(makeupFile:read())
+		setMakeup(m[1], m[2])
+		makeupFile:close()
+	-- Otherwise randomize the makeup if that setting is enabled
+	elseif RANDOMIZE_MAKEUP then 
+		setRandomMakeup() 
+	end
+
+
+	------------------------------
+	---- Check if JSON exists ----
+	------------------------------
+	local randomizedJSON = io.open("random.json","r")
+
+	-- If it doesn't, make it
+	if randomizedJSON == nil then
+		initialize.init() -- Start from scratch and make one
+		chooseUnlockedLevel() -- Choose the starting level
+	-- Otherwise, use it
+	else
+		randomizedLevels = json.decode(randomizedJSON:read())
+		randomizedJSON:close()
+		for i=1, #randomizedLevels do
+			if randomizedLevels[i]["accessible"] == true then
+				unlockLevel(randomizedLevels[i]["index"])
+			end
+		end
+	end
 end
 
 -----------------------------------
@@ -184,12 +279,29 @@ end
 -----------------------------------
 
 function main()
+	-- Randomizer variables
+	initialized = false
+
+	-- In-Game variables
+	-- What level you're on on the map/in game
+	if INCLUDE_TRAINING_LEVELS then 
+		mapIndex = 1 
+		firstLevel = 1
+	else 
+		mapIndex = 6 
+		firstLevel = 6
+	end
+
+	-- World and level
+	world = 0
+	level = 0
 	while true do
 		-- Code here will run once when the script is loaded, then after each emulated frame.
 
 		-- Upon Reset
 		if joypad.getimmediate()["Power"] == true then
-			print("Reset!")
+			deleteSavedData()
+			main()
 			-- Could have a function here that does stuff like setup initial save stuff, etc!
 		end
 
@@ -198,8 +310,14 @@ function main()
 		gameStateA = memory.readbyte(0x3000dca)
 		gameStateB = memory.readbyte(0x3000dcb)
 
-		if gameStateA == 1 and gameStateB == 4 and firstLaunch then
-			firstTimeInit()
+		-- Second "PRESS START" screen
+		if gameStateA == 1 and gameStateB == 4 then
+			-- Initialize values
+			-- Loading from json or first-time init is decided in this function
+			if not initialized then 
+				setupFile()
+				initialized = true
+			end
 		end
 
 		-- SAVE SELECT STATE
@@ -216,8 +334,8 @@ function main()
 		-- MAP STATE (From level)
 		-- If the player is one the map (Also if the player is on the results screen)
 		if gameStateA == 3 and (gameStateB == 2 or gameStateB == 4) then
-			-- Make sure the player can access all levels (Should be 34 when bonus levels are hidden)
-			setHighestAccessibleLevel(37)
+			-- Make sure the player can access all levels
+			setHighestAccessibleLevel()
 
 			-- Skips post=level cutscenes
 			if memory.read_u32_le(0x3007EE0) == 0x80083B9 then
@@ -239,7 +357,7 @@ function main()
 			-- Have you just completed this level? (It will only ever be 0x3 immediately upon clearing it)
 			if memory.readbyte(LEVEL_ACCESS_ADD+levelIndex) == 0x3 then
 				memory.writebyte(LEVEL_ACCESS_ADD+levelIndex,4)
-				unlockLevel()
+				chooseUnlockedLevel()
 			end
 
 			-- Player moves left/right
@@ -249,14 +367,17 @@ function main()
 			pressedRight = memory.readbyte(0x3000dee) == 0x10
 			holdingRight = memory.readbyte(0x3000dec) == 0x10 and memory.readbyte(0x3000df4) == 1
 
-			if (pressedLeft or holdingLeft) and mapIndex > 1 then
+			if (pressedLeft or holdingLeft) and mapIndex > firstLevel then
 				mapIndex = mapIndex -1
-			elseif (pressedRight or holdingRight) and mapIndex < 38 then
+			elseif (pressedRight or holdingRight) and mapIndex <= memory.readbyte(0x3007e8e) then
 				mapIndex = mapIndex +1
 			end
 
+			-- If you're at the first possible level, disable the left button
+			if mapIndex == firstLevel then joypad.set({Left = 0}) end
+
 			-- Can you access the level you're standing on?
-			boolLevelAccessible = unlockedLevels[mapIndex] ~= nil
+			boolLevelAccessible = randomizedLevels[mapIndex]["accessible"]
 			
 			-- If not, you can't enter
 			if boolLevelAccessible == false then
@@ -280,32 +401,6 @@ end
 -----------------------------------
 
 -- Everything before the main loop runs when the script is loaded
--- Would be smart to make certain things load upon starting a fresh file, restarting the gba emulator, etc.
 
--- This code clears all save data... might be useful if corruption is an issue
--- For now it's commented
-
--- joypad.set({Power = 1}) -- Reset the console
--- for i=0, 5 do
--- 	emu.frameadvance();
--- 	joypad.set({A=1, B=1, Select=1, Start=1})
--- end
--- emu.frameadvance();
--- joypad.set({Up=1})
--- emu.frameadvance();
--- joypad.set({A=1})
--- emu.frameadvance();
-
-joypad.set({Power = 1}) -- Reset the console
-for i=0, 5 do
-	emu.frameadvance();
-end
-
--- Is this the first time you're launching?
-firstLaunch = true -- Just setting to true for now, this will be based on an external file later
-
------------------------------------
-------- MAIN FUNCTION -------------
------------------------------------
-
+deleteSavedData() -- Clear saved data
 main() -- Run the main loop

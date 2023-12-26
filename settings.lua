@@ -13,6 +13,14 @@ FILE_NAME = "GUEST"     --[[
                             Must be 9 characters or fewer
                         --]]
 
+RANDOMIZE_MAKEUP = true --[[
+                            Randomize the default look of your Helirin
+
+                            This is saved to "makeup.json"
+                            If you would like to generate a new Helirin
+                            then delete that file and run the randomizer script
+                            (This works whether or not you're starting a new run)
+                        --]]
 
 
 WIN_CONDITION = "birds" --[[
@@ -28,7 +36,7 @@ WIN_CONDITION = "birds" --[[
 
 
 
-INCLUDE_BONUS_LEVELS = true     --[[
+INCLUDE_BONUS_LEVELS = false     --[[
                                     Whether or not to include the last three bonus levels
                                     Note that these levels do not include bonus pickups
                                     Must be true or false
@@ -36,7 +44,7 @@ INCLUDE_BONUS_LEVELS = true     --[[
 
 
 
-INCLUDE_TRAINING_LEVELS = true  --[[
+INCLUDE_TRAINING_LEVELS = false  --[[
                                     Whether or not to include the training levels
                                     Note that these levels do not include bonus pickups
                                     Must be true or false

@@ -1,4 +1,6 @@
+-- Requirements
 SETTINGS = require "settings"
+json = require "json"
 
 -- Shuffle a table
 local function shuffle(tbl)
@@ -350,27 +352,34 @@ local function shuffleBonuses()
     end
 end
 
-local function removeBonusLevels()
-    for i = 1, 3 do
-        table.remove(randomizedLevels, #randomizedLevels)
-    end
-end
+-- local function removeBonusLevels()
+--     for i = 36, 38 do
+--         randomizedLevels[i] = {"NOT IN GAME"}
+--     end
+-- end
 
-local function removeTrainingLevels()
-    for i = 1, 5 do
-        table.remove(randomizedLevels, 1)
-    end
-end
+-- local function removeTrainingLevels()
+--     for i = 1, 5 do
+--         randomizedLevels[i] = {"NOT IN GAME"}
+--     end
+-- end
 
 function initialize.init()
+    -- Deep copy the randomized levels again
+    randomizedLevels = deepcopy(defaultLevels)
+
     -- Shuffle bonuses if set to do so
     if SHUFFLE_BONUSES then shuffleBonuses() end
 
-    -- Remove bonus levels if set to exclude
-    if not INCLUDE_BONUS_LEVELS then removeBonusLevels() end
+    -- -- Remove bonus levels if set to exclude
+    -- if not INCLUDE_BONUS_LEVELS then removeBonusLevels() end
 
-    -- Remove training levels if set to exclude
-    if not INCLUDE_TRAINING_LEVELS then removeTrainingLevels() end
+    -- -- Remove training levels if set to exclude
+    -- if not INCLUDE_TRAINING_LEVELS then removeTrainingLevels() end
+
+    file = io.open("random.json", "w")
+    file:write(json.encode(randomizedLevels))
+    file:close()
 end
 
 return initialize
