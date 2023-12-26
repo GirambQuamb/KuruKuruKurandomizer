@@ -12,14 +12,21 @@ FILENAME_ADD = 0x203BDAE -- Start of GUEST file name
 LEVEL_ACCESS_ADD = 0x203BF40 -- Start of level accessibility (goes until + 0x25)
 
 -----------------------------------
-------- CHARACTER TABLE -----------
+------- REQUIREMENTS --------------
 -----------------------------------
 
-CHARACTERTABLE = require("charactertable")
+CHARACTERTABLE = require "charactertable"
+SETTINGS = require "settings" -- Randomizer settings
+json = require "json" -- json functions
+initialize = require "initialize" -- Functions to initialize a new run
+
+-- initialize.init() -- This should only be called when we don't have a json to load from
 
 -----------------------------------
 ------- LEVEL VARIABLES -----------
 -----------------------------------
+
+-- This should all be trash soon
 
 -- List of levels to unlock
 lockedLevels = {}
@@ -142,6 +149,9 @@ end
 -----------------------------------
 
 -- Unlocks a level
+
+-- TODO: Refactoring to match new randomizedLevels variable
+--		 Writing data to json
 
 function unlockLevel()
 	if #lockedLevels > 0 then
