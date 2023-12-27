@@ -21,26 +21,14 @@ json = require "json" -- json functions
 initialize = require "initialize" -- Functions to initialize a new run
 
 -----------------------------------
-------- LEVEL VARIABLES -----------
+----------- VARIABLES -------------
 -----------------------------------
-
--- This should all be trash soon
-
--- List of levels to unlock
--- lockedLevels = {}
--- for i=0, 37 do 			-- Just fills a list with 0 to 37. Change 37 to 34 if you don't want the secret levels included                    
--- 	lockedLevels[i] = i+1	-- Ideally this will be changed to use json... allows for a dedicated script to determine level unlock order
--- end						-- Might make things more balanced...
-
--- -- Levels unlocked when the script starts... literally none lol
--- -- You will want to redo this to use an external file... probably json. Love me some json...
--- unlockedLevels = {}
-
-
+gameStateA = 0
+gameStateB = 0
 
 
 -----------------------------------
-------- SAVE FILE EDITING ---------
+------- SAVE FILE RELATED ---------
 -----------------------------------
 
 -- 0203BFA2 -> File 1 name
@@ -80,8 +68,7 @@ function showTitleText()
 	end
 end
 
--- File name --
-
+-- Set filename
 function setFileName(filename)
 	if #filename < 10 then
 		for i = 0, 10 do
@@ -97,16 +84,8 @@ function setFileName(filename)
 			end
 		end
 	else
-		print("Filename too long!")
-	end
-end
-
--- Level Accessibility
--- 1 = Inaccessible, 2 = Accessible, 4 = Completed
--- Sets all levels to inaccessible
-function initLevelAccess()
-	for i=0, 37 do
-		memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
+		print("Filename too long! Setting to \"GUEST\"")
+		setFileName("GUEST")
 	end
 end
 
@@ -117,32 +96,37 @@ function setRandomMakeup()
 	-- Set random makeup (Does not set birds, at BDC6 and BDC7)
 	memory.writebyte(0x203bdc4, stick) -- Stick shape
 	memory.writebyte(0x203bdc5, paint) -- Paint
-
-	file = io.open("makeup.json", "w")
-    file:write(json.encode({stick, paint}))
-    file:close()
 end
 
-function setMakeup(stick, paint)
-	memory.writebyte(0x203bdc4, stick) -- Stick shape
-	memory.writebyte(0x203bdc5, paint) -- Paint
-end
+-- function setMakeup(stick, paint)
+-- 	memory.writebyte(0x203bdc4, stick) -- Stick shape
+-- 	memory.writebyte(0x203bdc5, paint) -- Paint
+-- end
 
------------------------------------
-------- RAM EDITING ---------------
------------------------------------
+-- Save which bonuses are unlocked, which makeup is worn, and which levels have the "I missed something" text
+function copySaveData()
+	-- Only copy to a file if you're past the title screen
+	-- This prevents overwriting makeup when resetting
+	if memory.readbyte(0x3000dca) > 1 then
+		-- Relevant save data array
+		local mem = memory.read_bytes_as_array(0x203BDC0, 0x200)
 
--- Sets boundary for player moving right on the map
--- IE: The highest accessible level
+		local sav = io.open("random.dat", "w")
+		sav:write(json.encode(mem))
+		sav:close()
 
-function setHighestAccessibleLevel()
-	if INCLUDE_BONUS_LEVELS then
-		memory.writebyte(0x3007e8e,37)
-	else
-		memory.writebyte(0x3007e8e,34)
+		print("Save data copied!")
 	end
 end
 
+function writeSaveData(data)
+	memory.write_bytes_as_array(0x203BDC0, data)
+end
+
+-- If the save file is written to, run the appropriate funciton
+for i = 0x203BDA0, 0x203BFA0 do
+	event.on_bus_write(copySaveData, i)
+end
 
 -----------------------------------
 ------- LEVEL RELATED -------------
@@ -208,6 +192,23 @@ function chooseUnlockedLevel()
 	end
 end
 
+-- Sets boundary for player moving right on the map
+-- IE: The highest accessible level
+function setHighestAccessibleLevel()
+	if INCLUDE_BONUS_LEVELS then
+		memory.writebyte(0x3007e8e,37)
+	else
+		memory.writebyte(0x3007e8e,34)
+	end
+end
+
+-- Sets all levels to inaccessible
+function initLevelAccess()
+	for i=0, 37 do
+		memory.writebyte(LEVEL_ACCESS_ADD+i, 1)
+	end
+end
+
 -----------------------------------
 ---- INITILIZATION FUNCTIONS ------
 -----------------------------------
@@ -241,12 +242,12 @@ function setupFile()
 	-- Hide bonus levels if they are excluded
 	if not INCLUDE_BONUS_LEVELS then memory.writebyte(0x800D218, 0x9) end
 
-	-- If there is a makeup.json file, load that makeup
-	local makeupFile = io.open("makeup.json","r")
-	if makeupFile ~= nil then
-		local m = json.decode(makeupFile:read())
-		setMakeup(m[1], m[2])
-		makeupFile:close()
+	-- If there is a random.dat file, load the data from it
+	local saveFile = io.open("random.dat","r")
+	if saveFile ~= nil then
+		local m = json.decode(saveFile:read())
+		writeSaveData(m)
+		saveFile:close()
 	-- Otherwise randomize the makeup if that setting is enabled
 	elseif RANDOMIZE_MAKEUP then 
 		setRandomMakeup() 
@@ -373,18 +374,20 @@ function main()
 				mapIndex = mapIndex +1
 			end
 
-			-- If you're at the first possible level, disable the left button
-			if mapIndex == firstLevel then joypad.set({Left = 0}) end
-
 			-- Can you access the level you're standing on?
 			boolLevelAccessible = randomizedLevels[mapIndex]["accessible"]
-			
-			-- If not, you can't enter
-			if boolLevelAccessible == false then
-				joypad.set({A = 0})
-			end
 
 			memory.writebyte(0x3007e90, mapIndex-1)
+
+			-- If you're at the first possible level, disable the left button
+			if mapIndex == firstLevel then 
+				-- Also disable A button if you're on an inaccessible level
+				if boolLevelAccessible == false then
+					joypad.set({Left = 0, A = 0}) 
+				else
+					joypad.set({Left = 0}) 
+				end
+			end
 		end
 
 		-- Debugging
@@ -392,7 +395,7 @@ function main()
 			gui.text(0,0,"Map index: ".. mapIndex .. "  Accessible? " .. tostring(boolLevelAccessible))
 		end
 
-		emu.frameadvance();
+		emu.frameadvance()
 	end
 end
 

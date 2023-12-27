@@ -53,6 +53,7 @@ INCLUDE_TRAINING_LEVELS = false  --[[
 
 SHUFFLE_BONUSES = true      --[[ 
                                 Whether the bonuses in each level are shuffled
+                                Note that there are no bonuses in the training or bonus levels
                                 Must be true or false
                             --]]
 

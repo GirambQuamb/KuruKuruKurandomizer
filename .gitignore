@@ -1,2 +1,3 @@
-random.json
-makeup.json
+*.json
+*.gba
+*.dat
