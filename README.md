@@ -18,3 +18,10 @@ To play, simply launch the patched ROM through Bizhawk. Once the game has starte
 Once you have passed the title screen and made it to the world map, two files should appear in the directory, `random.dat` and `random.json`. These keep track of your progress. If you reboot or close the emulator, simply launch the ROM and run `kurandomizer.lua` again to regain progress. 
 
 Deleting `random.dat` and `random.json` will allow you to start a new game.
+
+## Related Repositories
+A massive thanks to the minds behind these repositories, which served as inspiration and guidance
+
+- [KuruTools](https://github.com/E-Sh4rk/KuruTools) - Various useful tools and utilities related to Kuru Kuru Kururin and Kururin Paradise
+- [KururinTAS](https://github.com/E-Sh4rk/KururinTAS) - Various TAS-related tools and files related to Kuru Kuru Kururin
+- [KHCOM_RANDO](https://github.com/gaithern/KHCOM_RANDO) - A Kingdom Hearts: Chain of Memories randomizer that works similarly through Bizhawk-specific Lua scripts
