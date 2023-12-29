@@ -211,6 +211,22 @@ function initLevelAccess()
 	end
 end
 
+function setLevelBonus()
+	local bonusID = randomizedLevels[mapIndex]["bonusID"]
+	local IDString
+
+	if bonusID then
+		if bonusID < 10 then
+			IDString = "0"..tostring(bonusID)
+		else
+			IDString = tostring(bonusID)
+		end
+
+		memory.writebyte(0x2000000+0x4, 224 + tonumber(string.sub(IDString,1,1)))
+		memory.writebyte(0x2000000+0x6, 224 + tonumber(string.sub(IDString,2,2)))
+	end
+end
+
 -----------------------------------
 ---- INITILIZATION FUNCTIONS ------
 -----------------------------------
@@ -280,6 +296,40 @@ function setupFile()
 end
 
 -----------------------------------
+------- WINNING -------------------
+-----------------------------------
+
+-- This function should return true if the player has won, false otherwise
+function checkWin()
+	return true -- Just returns true for now...
+end
+
+-- This function should only be called on the results screen of a level
+-- Sets various memory addresses to transition to the "Congratulations" screen when the player proceeds
+function win()
+	aPressed = false -- Has the player pressed A to see the congrats screen?
+
+	-- 8 frames of this to make sure it works
+	for i=1, 8 do
+		joypad.set({A = 0, Start = 0})
+		memory.writebyte(0x3000DCA, 4)
+		memory.writebyte(0x3007EE0, 0xB9)
+		memory.writebyte(0x3007EE1, 0x84)
+		emu.frameadvance()
+	end
+	while true do
+		-- If the player has seen the congrats screen, don't let em continue after the credits
+		if aPressed then
+			joypad.set({A = 0, Start = 0})
+		end
+		if joypad.getimmediate()["A"] then
+			aPressed = true
+		end
+
+		emu.frameadvance()
+	end
+end
+-----------------------------------
 ------- MAIN LOOP -----------------
 -----------------------------------
 
@@ -320,7 +370,6 @@ function main()
 		-- Second "PRESS START" screen
 		if gameStateA == 1 and gameStateB == 4 then
 			-- Initialize values
-			-- Loading from json or first-time init is decided in this function
 			if not initialized then 
 				setupFile()
 				initialized = true
@@ -331,11 +380,6 @@ function main()
 		if gameStateA == 2 and gameStateB == 1 then
 			memory.writebyte(0x3007ea5,5)
 			joypad.set({Up = 0, Down = 0})
-		end
-
-		-- SELECT A MODE STATE
-		if gameStateA == 3 and gameStateB == 0 then
-			
 		end
 
 		-- MAP STATE (From level)
@@ -373,6 +417,7 @@ function main()
 			-- This is stupid and I hate it, but it solves a minor problem with save data
 			if frameTimer == emu.framecount() then
 				copySaveData()
+				if checkWin() then win() end
 			end
 
 			-- Player moves left/right
@@ -401,6 +446,12 @@ function main()
 				else
 					joypad.set({Left = 0}) 
 				end
+			end
+		end
+
+		if gameStateA == 3 and gameStateB == 3 then
+			if memory.readbyte(0x2000000) ~= 0x0 then
+				setLevelBonus()
 			end
 		end
 
