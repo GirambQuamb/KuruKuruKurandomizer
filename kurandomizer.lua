@@ -2,7 +2,7 @@
 ------- CONSTANTS -----------------
 -----------------------------------
 
-VERSIONNUMBER = "Version 0.1"
+VERSION = "Prerelease"
 
 -----------------------------------
 ------- ADDRESSES -----------------
@@ -23,9 +23,9 @@ initialize = require "initialize" -- Functions to initialize a new run
 -----------------------------------
 ----------- VARIABLES -------------
 -----------------------------------
-gameStateA = 0
-gameStateB = 0
 
+gameStateA = 0 -- Are these necessary?
+gameStateB = 0
 
 -----------------------------------
 ------- SAVE FILE RELATED ---------
@@ -62,8 +62,8 @@ function showTitleText()
 
 	memory.writebyte(0x0203C57E, 0x20)
 
-	for i=0, #VERSIONNUMBER do
-		local s = VERSIONNUMBER:sub(i+1,i+1)
+	for i=0, #VERSION do
+		local s = VERSION:sub(i+1,i+1)
 		memory.writebyte(0x0801E8C0+i, CHARACTERTABLE[s])
 	end
 end
@@ -98,13 +98,8 @@ function setRandomMakeup()
 	memory.writebyte(0x203bdc5, paint) -- Paint
 end
 
--- function setMakeup(stick, paint)
--- 	memory.writebyte(0x203bdc4, stick) -- Stick shape
--- 	memory.writebyte(0x203bdc5, paint) -- Paint
--- end
-
 -- Save which bonuses are unlocked, which makeup is worn, and which levels have the "I missed something" text
-function copySaveData()
+function copySaveData(addr)
 	-- Only copy to a file if you're past the title screen
 	-- This prevents overwriting makeup when resetting
 	if memory.readbyte(0x3000dca) > 1 then
@@ -115,13 +110,20 @@ function copySaveData()
 		sav:write(json.encode(mem))
 		sav:close()
 
-		print("Save data copied!")
+		-- Debugging
+		-- print("Save data copied to random.dat")
+		-- if addr then
+		-- 	print("Address: " .. string.format("%x", addr))
+		-- else
+		-- 	print("Called manually :)")
+		-- end
 	end
 end
 
 function writeSaveData(data)
 	memory.write_bytes_as_array(0x203BDC0, data)
 end
+
 
 -- If the save file is written to, run the appropriate funciton
 for i = 0x203BDA0, 0x203BFA0 do
@@ -173,9 +175,9 @@ function chooseUnlockedLevel()
 	if not INCLUDE_BONUS_LEVELS then highestPossibleLevel = 35 end
 
 	-- Iterate through the list of randomized levels
-	for key, value in pairs(randomizedLevels) do
+	for key, value in ipairs(randomizedLevels) do
 		-- Only check valid levels
-		if value["index"] >= lowestPossibleLevel and value["index"] <= highestPossibleLevel then
+		if key >= lowestPossibleLevel and key <= highestPossibleLevel then
 			-- Add it to our lockedLevels table if it's locked
 			if value["accessible"] == false then
 				table.insert(lockedLevels, key) -- This is the index in randomizedLevels that we will use to unlock
@@ -250,6 +252,7 @@ function setupFile()
 		saveFile:close()
 	-- Otherwise randomize the makeup if that setting is enabled
 	elseif RANDOMIZE_MAKEUP then 
+		copySaveData()
 		setRandomMakeup() 
 	end
 
@@ -267,11 +270,12 @@ function setupFile()
 	else
 		randomizedLevels = json.decode(randomizedJSON:read())
 		randomizedJSON:close()
-		for i=1, #randomizedLevels do
-			if randomizedLevels[i]["accessible"] == true then
-				unlockLevel(randomizedLevels[i]["index"])
-			end
-		end
+		-- for i=1, #randomizedLevels do
+		-- 	if randomizedLevels[i]["accessible"] == true then
+		-- 		-- unlockLevel(randomizedLevels[i]["index"])
+		-- 		unlockLevel(i)
+		-- 	end
+		-- end
 	end
 end
 
@@ -280,10 +284,9 @@ end
 -----------------------------------
 
 function main()
-	-- Randomizer variables
+	-- Whether we've done the initial setup
 	initialized = false
 
-	-- In-Game variables
 	-- What level you're on on the map/in game
 	if INCLUDE_TRAINING_LEVELS then 
 		mapIndex = 1 
@@ -296,16 +299,19 @@ function main()
 	-- World and level
 	world = 0
 	level = 0
+
+	-- Frame timer
+	frameTimer = -1
+
 	while true do
 		-- Code here will run once when the script is loaded, then after each emulated frame.
 
 		-- Upon Reset
 		if joypad.getimmediate()["Power"] == true then
+			copySaveData()
 			deleteSavedData()
 			main()
-			-- Could have a function here that does stuff like setup initial save stuff, etc!
 		end
-
 
 		-- Game State
 		gameStateA = memory.readbyte(0x3000dca)
@@ -342,7 +348,6 @@ function main()
 			if memory.read_u32_le(0x3007EE0) == 0x80083B9 then
 				memory.writebyte(0x3007EE1, 0x82)
 			end
-			
 
 			-- Addresses related to world/level
 			world = memory.readbyte(0x3004420)
@@ -357,8 +362,17 @@ function main()
 			
 			-- Have you just completed this level? (It will only ever be 0x3 immediately upon clearing it)
 			if memory.readbyte(LEVEL_ACCESS_ADD+levelIndex) == 0x3 then
-				memory.writebyte(LEVEL_ACCESS_ADD+levelIndex,4)
+				memory.writebyte(LEVEL_ACCESS_ADD+levelIndex,4) -- Set the level to a star on the map
 				chooseUnlockedLevel()
+
+				-- Set a timer for 5 frames
+				frameTimer = emu.framecount()+5
+			end
+
+			-- After that 5 frames, write save data to random.dat
+			-- This is stupid and I hate it, but it solves a minor problem with save data
+			if frameTimer == emu.framecount() then
+				copySaveData()
 			end
 
 			-- Player moves left/right

@@ -28,7 +28,7 @@ WIN_CONDITION = "birds" --[[
 
                             OPTIONS
 
-                            "birds"          Collect all bird bonuses
+                            "birds"          Collect all birds
                             "bonuses"        Collect all bonuses (birds and cosmetic)
                             "levels"         Complete all available levels
                             "all"            Complete all available levels and collect all bonuses

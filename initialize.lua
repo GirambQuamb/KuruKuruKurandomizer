@@ -29,307 +29,193 @@ end
 -- Default table of levels, with properties for whether they are accessible/completed, and the bonus they hold
 defaultLevels = {
     { -- Level 1
-    index = 1,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     {  -- Level 2
-    index = 2,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     { -- Level 3
-    index = 3,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     { -- Level 4
-    index = 4,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     { -- Level 5
-    index = 5,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     { -- Level 6
-    index = 6,
     accessible = false,
-    completed = false,
-    bonusID = 11,
-    bonusCollected = false
+    bonusID = 11
     },
 
     { -- Level 7
-    index = 7,
     accessible = false,
-    completed = false,
-    bonusID = 21,
-    bonusCollected = false
+    bonusID = 21
     },
 
     { -- Level 8
-    index = 8,
     accessible = false,
-    completed = false,
-    bonusID = 1,
-    bonusCollected = false
+    bonusID = 1
     },
 
     { -- Level 9
-    index = 9,
     accessible = false,
-    completed = false,
-    bonusID = 12,
-    bonusCollected = false
+    bonusID = 12
     },
 
     { -- Level 10
-    index = 10,
     accessible = false,
-    completed = false,
-    bonusID = 22,
-    bonusCollected = false
+    bonusID = 22
     },
 
     { -- Level 11
-    index = 11,
     accessible = false,
-    completed = false,
-    bonusID = 2,
-    bonusCollected = false
+    bonusID = 2
     },
 
     { -- Level 12
-    index = 12,
     accessible = false,
-    completed = false,
-    bonusID = 13,
-    bonusCollected = false
+    bonusID = 13
     },
 
     { -- Level 13
-    index = 13,
     accessible = false,
-    completed = false,
-    bonusID = 23,
-    bonusCollected = false
+    bonusID = 23
     },
 
     { -- Level 14
-    index = 14,
     accessible = false,
-    completed = false,
-    bonusID = 3,
-    bonusCollected = false
+    bonusID = 3
     },
 
     { -- Level 15
-    index = 15,
     accessible = false,
-    completed = false,
-    bonusID = 14,
-    bonusCollected = false
+    bonusID = 14
     },
 
     { -- Level 16
-    index = 16,
     accessible = false,
-    completed = false,
-    bonusID = 24,
-    bonusCollected = false
+    bonusID = 24
     },
 
     { -- Level 17
-    index = 17,
     accessible = false,
-    completed = false,
-    bonusID = 4,
-    bonusCollected = false
+    bonusID = 4
     },
 
     { -- Level 18
-    index = 18,
     accessible = false,
-    completed = false,
-    bonusID = 15,
-    bonusCollected = false
+    bonusID = 15
     },
 
     { -- Level 19
-    index = 19,
     accessible = false,
-    completed = false,
-    bonusID = 25,
-    bonusCollected = false
+    bonusID = 25
     },
 
     { -- Level 20
-    index = 20,
     accessible = false,
-    completed = false,
-    bonusID = 5,
-    bonusCollected = false
+    bonusID = 5
     },
 
     { -- Level 21
-    index = 21,
     accessible = false,
-    completed = false,
-    bonusID = 16,
-    bonusCollected = false
+    bonusID = 16
     },
 
     { -- Level 22
-    index = 22,
     accessible = false,
-    completed = false,
-    bonusID = 26,
-    bonusCollected = false
+    bonusID = 26
     },
 
     { -- Level 23
-    index = 23,
     accessible = false,
-    completed = false,
-    bonusID = 6,
-    bonusCollected = false
+    bonusID = 6
     },
 
     { -- Level 24
-    index = 24,
     accessible = false,
-    completed = false,
-    bonusID = 27,
-    bonusCollected = false
+    bonusID = 27
     },
 
     { -- Level 25
-    index = 25,
     accessible = false,
-    completed = false,
-    bonusID = 28,
-    bonusCollected = false
+    bonusID = 28
     },
 
     { -- Level 26
-    index = 26,
     accessible = false,
-    completed = false,
-    bonusID = 7,
-    bonusCollected = false
+    bonusID = 7
     },
 
     { -- Level 27
-    index = 27,
     accessible = false,
-    completed = false,
-    bonusID = 29,
-    bonusCollected = false
+    bonusID = 29
     },
 
     { -- Level 28
-    index = 28,
     accessible = false,
-    completed = false,
-    bonusID = 30,
-    bonusCollected = false
+    bonusID = 30
     },
 
     { -- Level 29
-    index = 29,
     accessible = false,
-    completed = false,
-    bonusID = 9,
-    bonusCollected = false
+    bonusID = 9
     },
 
     { -- Level 30
-    index = 30,
     accessible = false,
-    completed = false,
-    bonusID = 31,
-    bonusCollected = false
+    bonusID = 31
     },
 
     { -- Level 31
-    index = 31,
     accessible = false,
-    completed = false,
-    bonusID = 32,
-    bonusCollected = false
+    bonusID = 32
     },
 
     { -- Level 32
-    index = 32,
     accessible = false,
-    completed = false,
-    bonusID = 9,
-    bonusCollected = false
+    bonusID = 9
     },
 
     { -- Level 33
-    index = 33,
     accessible = false,
-    completed = false,
-    bonusID = 33,
-    bonusCollected = false
+    bonusID = 33
     },
 
     { -- Level 34
-    index = 34,
     accessible = false,
-    completed = false,
-    bonusID = 34,
-    bonusCollected = false
+    bonusID = 34
     },
 
     { -- Level 35
-    index = 35,
     accessible = false,
-    completed = false,
-    bonusID = 10,
-    bonusCollected = false
+    bonusID = 10
     },
 
     { -- Level 36
-    index = 36,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     { -- Level 37
-    index = 37,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     },
 
     {-- Level 38
-    index = 38,
     accessible = false,
-    completed = false,
-    bonusID = nil,
-    bonusCollected = nil
+    bonusID = nil
     }
 }
 
