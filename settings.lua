@@ -32,6 +32,8 @@ WIN_CONDITION = "birds" --[[
                             "bonuses"        Collect all bonuses (birds and cosmetic)
                             "levels"         Complete all available levels
                             "all"            Complete all available levels and collect all bonuses
+
+                            Putting anything else here will default the win condition to "birds"
                         --]]
 
 
