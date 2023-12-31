@@ -34,7 +34,7 @@ gameStateB = 0 -- Not sure, but I'm scared to delete them now
 
 -- Show some text using the file select screen
 function showTitleText()
-	local topTitle = "Kuru Kuru"
+	local topTitle = "Kuru Kuru    "
 	local middleTitle = "Kururin"
 	local bottomTitle = "Randomizer"
 
@@ -43,7 +43,7 @@ function showTitleText()
 	memory.writebyte(0x203BFA2, 0x20)
 	for i=0, #topTitle do
 		local s = topTitle:sub(i+1,i+1)
-		memory.writebyte(0x0203BFA2+i, CHARACTERTABLE[s]) -- File 1 name
+		memory.writebyte(0x0801E89C+i, CHARACTERTABLE[s]) -- File 1 name
 	end
 
 	for i=0, #middleTitle do
