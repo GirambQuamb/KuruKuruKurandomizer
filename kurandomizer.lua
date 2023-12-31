@@ -2,7 +2,7 @@
 ------- CONSTANTS -----------------
 -----------------------------------
 
-VERSION = "Pre-release"
+VERSION = "Version 1.0"
 
 -----------------------------------
 ------- ADDRESSES -----------------
@@ -112,7 +112,7 @@ function writeSaveData(data)
 	memory.write_bytes_as_array(0x203BDC0, data)
 end
 
--- Whenever the save file is written to, we'll run the copy function
+-- Whenever this section of RAM is written to, we'll run the copy function
 for i = 0x203BDA0, 0x203BFA0 do
 	event.on_bus_write(copySaveData, i)
 end
@@ -154,13 +154,13 @@ function chooseUnlockedLevel()
 		numPossibleLevels = #randomizedLevels
 	elseif LEVEL_ORDER == "close" then
 		numPossibleLevels = 6
-	else -- or throw a pretend error
+	else -- or throw a warning and default to "close"
 		print("Error with \"LEVEL_ORDER\" setting.\nDefaulting to \"close\"!")
 		numPossibleLevels = 6
 		return
 	end
 
-	-- Base valid level choices based on settings
+	-- Base valid level choices on settings
 	if not INCLUDE_TRAINING_LEVELS then lowestPossibleLevel = 6 end
 	if not INCLUDE_BONUS_LEVELS then highestPossibleLevel = 35 end
 
@@ -348,7 +348,7 @@ end
 
 -- Check if the player has all birds
 function checkBirdWin()
-	-- Last two bytes of this address are the last two birds
+	-- Least two bytes of this address are the last two birds
 	local lastTwoBirds = bit.check(memory.readbyte(0x203BDC1), 0) and bit.check(memory.readbyte(0x203BDC1), 1)
 	
 	-- If you have those, and the 8 others, you win!
@@ -422,7 +422,7 @@ function main()
 		gameStateA = memory.readbyte(0x3000dca)
 		gameStateB = memory.readbyte(0x3000dcb)
 
-		-- Second "PRESS START" screen
+		-- Second "PRESS START" state
 		if gameStateA == 1 and gameStateB == 4 then
 			-- Initialize randomizer-related things
 			if not initialized then 
@@ -528,8 +528,6 @@ end
 -----------------------------------
 ------- SCRIPT LOAD ---------------
 -----------------------------------
-
--- Everything before the main loop runs when the script is loaded
 
 deleteSavedData() -- Clear saved data
 main() -- Run the main loop
