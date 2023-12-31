@@ -34,16 +34,16 @@ gameStateB = 0 -- Not sure, but I'm scared to delete them now
 
 -- Show some text using the file select screen
 function showTitleText()
-	local topTitle = "Kuru Kuru    "
+	local topTitle = "Kuru Kuru"
 	local middleTitle = "Kururin"
 	local bottomTitle = "Randomizer"
 
 	-- Loop through relevant strings and place them character by character
 	-- There's probably a better way to do this but whatever
-	memory.writebyte(0x203BFA2, 0x20)
+	--memory.writebyte(0x203BFA2, 0x20)
 	for i=0, #topTitle do
 		local s = topTitle:sub(i+1,i+1)
-		memory.writebyte(0x0801E89C+i, CHARACTERTABLE[s]) -- File 1 name
+		memory.writebyte(0x203BFA2+i, CHARACTERTABLE[s]) -- File 1 name
 	end
 
 	for i=0, #middleTitle do
@@ -97,7 +97,7 @@ end
 -- Level completion times, level accessibility/completion, and probably more
 function copySaveData(addr)
 	-- Only copy to a file if you're past the title screen, or have called this function manually
-	if memory.readbyte(0x3000dca) > 1 or addr ~= nil then
+	if memory.readbyte(0x3000dca) > 1 or addr == nil then
 		-- Relevant save data array
 		local mem = memory.read_bytes_as_array(0x203BDC0, 0x200)
 
