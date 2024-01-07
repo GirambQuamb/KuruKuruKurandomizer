@@ -22,9 +22,9 @@ Deleting `random.dat` and `random.json` will allow you to start a new game.
 ## Gameplay
 Only adventure mode levels are shuffled in this randomizer, challenge levels are unaffected. Most randomizer settings are explained in the `settings.lua` file. Things like whether bonuses are shuffled, training levels are included, etc.
 
-On the world map, levels with a blue circle are not unlocked, levels with a yellow circle are unlocked, and levels with a yellow star have been completed. If you have not picked up the bonus item in a level your character will say so while hovered over it.
+On the world map, levels with a blue circle are locked, levels with a yellow circle are unlocked, and levels with a yellow star have been completed. If you have not picked up the bonus item in an accessible level, your character will say so while hovered over it.
 
-When you finish a level, if you've completed your win condition you should be taken to a congratulatory screen after the results screen. The credits will then roll.
+When you finish a level, if you've completed the set win condition you should be taken to a congratulatory screen after the results screen. The credits will then roll.
 
 ## Related Repositories
 A massive thanks to the minds behind these repositories, which served as inspiration and guidance.
