@@ -511,7 +511,7 @@ function main()
 		-- IN-LEVEL STATE
 		if gameStateA == 3 and gameStateB == 3 then
 			-- Set the bonus :)
-			if memory.readbyte(0x2000000) ~= 0x0 then
+			if memory.readbyte(0x2000004) == 0xE9 then -- All levels will default to E
 				setLevelBonus()
 			end
 		end

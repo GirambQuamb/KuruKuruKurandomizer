@@ -170,7 +170,7 @@ defaultLevels = {
 
     { -- Level 29
     accessible = false,
-    bonusID = 9
+    bonusID = 8
     },
 
     { -- Level 30
