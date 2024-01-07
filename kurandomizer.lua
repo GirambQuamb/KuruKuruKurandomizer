@@ -505,6 +505,8 @@ function main()
 				else
 					joypad.set({Left = 0}) 
 				end
+			elseif boolLevelAccessible == false then
+				joypad.set({A = 0}) 
 			end
 		end
 
